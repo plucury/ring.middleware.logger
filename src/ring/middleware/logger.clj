@@ -13,13 +13,13 @@
 ;;
 (ns ring.middleware.logger
   (require
-   [onelog.core :as log]
-   [clansi.core :as ansi]
-   ))
+    [onelog.core :as log]
+    [clansi.core :as ansi]
+    ))
 
 ;; TODO: Facilities for easily modifying the default log file name and log level
 (def ^:dynamic *ring-log-file* "logs/ring.log")
-(def ^:dynamic *ring-log-level* :info)
+(def ^:dynamic *ring-log-level* :info )
 
 ;; The generation of the calling class, line numbers, etc. is
 ;; extremely slow, and should be used only in development mode or for
@@ -45,7 +45,7 @@
 ;; are practically illegible.
 (def id-colorizations
   "Foreground / background color codes allowable for random ID colorization."
-  {:white :bg-white :black :bg-black :red :bg-red :green :bg-green :blue :bg-blue :yellow :bg-yellow :magenta :bg-magenta :cyan :bg-cyan} )
+  {:white :bg-white :black :bg-black :red :bg-red :green :bg-green :blue :bg-blue :yellow :bg-yellow :magenta :bg-magenta :cyan :bg-cyan})
 
 (def id-foreground-colors (keys id-colorizations))
 (def id-colorization-count (count id-foreground-colors))
@@ -62,12 +62,12 @@
 
 (defn- format-id [id]
   "Returns a standard colorized, printable representation of a request id."
-  (apply ansi/style (format "%04x" id) [:bright] (get-colorization id)))
+  (apply ansi/style (format "%04x" id) [:bright ] (get-colorization id)))
 
 (defn- log4j-pre-logger
   [id
-   {:keys [request-method uri remote-addr query-string params header] :as req}]
-  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr " header [" header "]"))
+   {:keys [request-method uri remote-addr query-string params headers] :as req}]
+  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr " \nHeaders " headers))
   (if params
     (log/info (str "[" (format-id id) "]  \\ - - - -  Params: " params))))
 
@@ -94,27 +94,27 @@ Sends all log messages at \"info\" level to the Log4J logging
   as errors."
   (let [colorid (format-id id)
         colortime (try (apply ansi/style
-                              (str totaltime)
-                              (cond
-                               (>= totaltime 1500)  [:bright :red]
-                               (>= totaltime 1000) [:red]
-                               (>= totaltime 500) [:yellow]
-                               :else :default))
-                       (catch Exception e (or totaltime "??")))
-        
+                         (str totaltime)
+                         (cond
+                           (>= totaltime 1500) [:bright :red ]
+                           (>= totaltime 1000) [:red ]
+                           (>= totaltime 500) [:yellow ]
+                           :else :default ))
+      (catch Exception e (or totaltime "??")))
+
         colorstatus (try (apply ansi/style
-                                (str status)
-                                (cond
-                                 (< status 300) [:default] 
-                                 (>= status 500) [:bright :red] 
-                                 (>= status 400) [:red] 
-                                 :else [:yellow]))
-                         (catch Exception e (or status "???")))
+                           (str status)
+                           (cond
+                             (< status 300) [:default ]
+                             (>= status 500) [:bright :red ]
+                             (>= status 400) [:red ]
+                             :else [:yellow ]))
+      (catch Exception e (or status "???")))
         log-message (str
-                     "[" colorid "] "
-                     "Finished " request-method " " uri  (if query-string (str "?" query-string)) " for " remote-addr " in (" colortime " ms)"
-                     " Status: " colorstatus
-                     ) ]
+      "[" colorid "] "
+      "Finished " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr " in (" colortime " ms)"
+      " Status: " colorstatus
+      )]
 
     (if (and (number? status) (>= status 500))
       (log/error log-message)
@@ -131,7 +131,7 @@ Sends all log messages at \"info\" level to the Log4J logging
    throwable
    totaltime]
   (let [formatted-id (format-id id)]
-    (log/error (str "[" formatted-id "] " (ansi/style "Exception!" :bright :red)  " for " remote-addr " in (" totaltime " ms)"))
+    (log/error (str "[" formatted-id "] " (ansi/style "Exception!" :bright :red ) " for " remote-addr " in (" totaltime " ms)"))
     (log/error throwable (str "- End stacktrace for " formatted-id "-")))) ;; must include a second string argument to make c.t.logging recognize first arg as an exception)
 
 (defn- log4j-colorless-exception-logger
@@ -165,8 +165,8 @@ total time taken to that point. It re-throws the exception after
 logging it, so that other middleware has a chance to do something with
 it.
 "
-;; originally based on
-;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
+  ;; originally based on
+  ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
     (let [id (rand-int 0xffff)
           start (System/currentTimeMillis)]
@@ -174,12 +174,12 @@ it.
         (pre-logger id request)
         (let [response (handler request)
               finish (System/currentTimeMillis)
-              total  (- finish start)]
+              total (- finish start)]
           (post-logger id request response total)
           response)
         (catch Throwable t
           (let [finish (System/currentTimeMillis)
-                total  (- finish start)]
+                total (- finish start)]
             (exception-logger id request t total))
           (throw t))))))
 
@@ -187,15 +187,15 @@ it.
 (defn wrap-with-logger
   "Returns a Ring middleware handler which uses the prepackaged color loggers."
   ([handler logfile]
-     (log/start! logfile *ring-log-level*)
-     (make-logger-middleware handler log4j-pre-logger log4j-post-logger log4j-exception-logger))
+    (log/start! logfile *ring-log-level*)
+    (make-logger-middleware handler log4j-pre-logger log4j-post-logger log4j-exception-logger))
   ([handler] (wrap-with-logger handler *ring-log-file*)))
 
 (defn wrap-with-plaintext-logger
   "Returns a Ring middleware handler which uses the ANSI-colorless prepackaged loggers."
   ([handler logfile]
-     (log/start! logfile *ring-log-level*)
-     (make-logger-middleware handler log4j-colorless-pre-logger  log4j-colorless-post-logger log4j-colorless-exception-logger))
+    (log/start! logfile *ring-log-level*)
+    (make-logger-middleware handler log4j-colorless-pre-logger log4j-colorless-post-logger log4j-colorless-exception-logger))
   ([handler] (wrap-with-plaintext-logger handler *ring-log-file*)))
 
 
