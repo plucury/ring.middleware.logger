@@ -66,8 +66,8 @@
 
 (defn- log4j-pre-logger
   [id
-   {:keys [request-method uri remote-addr query-string params] :as req}]
-  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr))
+   {:keys [request-method uri remote-addr query-string params header] :as req}]
+  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr " header [" header "]"))
   (if params
     (log/info (str "[" (format-id id) "]  \\ - - - -  Params: " params))))
 
